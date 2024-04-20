@@ -1,0 +1,22 @@
+<section hx-target="#main">
+  <form hx-post="/create">
+    <div>
+      <h2 class="text-2xl mb-2">Create a room</h2>
+      <button class="btn" type="submit">Create</button>
+    </div>
+  </form>
+  <div class="divider">OR</div>
+  <form hx-post="/join">
+    <h2 class="text-2xl mb-2">Join a room</h2>
+    <div class="join">
+      <input
+        class="input input-bordered join-item"
+        type="text"
+        name="sessionid"
+        placeholder="Session id"
+      /><br />
+      <button type="submit" class="btn btn-outline join-item">Join</button>
+    </div>
+  </form>
+</section>
+

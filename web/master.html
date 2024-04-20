@@ -1,0 +1,15 @@
+<section>
+  <div>
+    <h1 class="text-xl">Room number: <b>{{ .SessionId }}</b></h1>
+    <p>Give this number to the other members you want to invite</p>
+    <br />
+    <p>
+      Number of questions: <span hx-trigger="every 5s" hx-get="/count">0</span>
+    </p>
+  </div>
+  <br />
+  <button class="btn" hx-get="/leave" hx-target="#main">
+    Leave (this will destroy the room)
+  </button>
+  <button class="btn" hx-get="/view?n=0" hx-target="#main">View</button>
+</section>

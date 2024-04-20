@@ -1,0 +1,22 @@
+body,
+html {
+  padding: 0;
+  margin: 0;
+  /* background-color: #c3c3c3; */
+}
+
+main {
+  /* width: 100vw; */
+  /* display: grid; */
+  /* align-items: center; */
+  /* justify-items: center; */
+}
+
+section {
+  /* display: flex; */
+}
+
+button {
+  background-color: red;
+  padding: 1em;
+}

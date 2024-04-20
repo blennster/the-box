@@ -1,0 +1,19 @@
+<div hx-target="this">
+  <h1 class="text-xl">{{ .Question.To }}</h1>
+  <p class="text-l mb-2">{{ .Question.Body }}</p>
+  <p>Question {{ .Pos }} / {{ .End }}</p>
+
+  <div class="join my-2">
+    <button class="btn join-item" type="" hx-get="/view?n={{ .Prev }}">
+      Previous
+    </button>
+    <button class="btn join-item" type="" hx-get="/view?n={{ .Next }}">
+      Next
+    </button>
+  </div>
+  <br />
+
+  <button class="btn" type="" hx-target="#main" hx-get="/leave">
+    Close room
+  </button>
+</div>
