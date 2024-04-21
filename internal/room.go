@@ -5,8 +5,8 @@ import (
 	"strconv"
 )
 
-type Session struct {
-	SessionId string
+type Room struct {
+	RoomId    string
 	MasterKey string
 	Questions []Question
 }
@@ -16,14 +16,14 @@ type Question struct {
 	Body string
 }
 
-func NewSession() Session {
-	sessionId := ""
+func NewRoom() Room {
+	roomId := ""
 	for i := 0; i < 6; i++ {
-		sessionId += strconv.Itoa(rand.Intn(9))
+		roomId += strconv.Itoa(rand.Intn(9))
 	}
 
-	return Session{
-		SessionId: sessionId,
+	return Room{
+		RoomId:    roomId,
 		MasterKey: strconv.Itoa(rand.Int()),
 	}
 }

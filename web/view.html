@@ -1,9 +1,11 @@
-<div hx-target="this">
+<div hx-target="#main">
   <h1 class="text-xl">{{ .Question.To }}</h1>
   <p class="text-l mb-2">{{ .Question.Body }}</p>
   <p>
     Question {{ inc .Pos }} /
-    <span hx-trigger="every 5s" hx-get="/count"></span>
+    <span hx-trigger="every 5s" hx-get="/count" hx-target="this"
+      >{{ .End }}</span
+    >
   </p>
 
   <div class="join my-2">
@@ -16,7 +18,5 @@
   </div>
   <br />
 
-  <button class="btn" type="" hx-target="#main" hx-get="/leave">
-    Close room
-  </button>
+  <button class="btn" type="" hx-get="/leave">Close room</button>
 </div>

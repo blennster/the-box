@@ -8,13 +8,13 @@ import (
 )
 
 const (
-	sessionCookieName       = "session"
-	masterSessionCookieName = "sessionMasterKey"
+	roomCookieName       = "room"
+	masterRoomCookieName = "roomMasterKey"
 )
 
 var (
-	Templates      *template.Template
-	SessionStorage Storage[string, Session]
+	Templates   *template.Template
+	RoomStorage Storage[string, Room]
 )
 
 func HandleHome(w http.ResponseWriter, r *http.Request) {
@@ -22,31 +22,31 @@ func HandleHome(w http.ResponseWriter, r *http.Request) {
 }
 
 func HandleCreate(w http.ResponseWriter, r *http.Request) {
-	session := NewSession()
-	SessionStorage.Store(session.SessionId, session)
+	room := NewRoom()
+	RoomStorage.Store(room.RoomId, room)
 
 	http.SetCookie(w, &http.Cookie{
-		Name:  sessionCookieName,
-		Value: session.SessionId,
+		Name:  roomCookieName,
+		Value: room.RoomId,
 		Path:  "/",
 	})
 	http.SetCookie(w, &http.Cookie{
-		Name:  masterSessionCookieName,
-		Value: session.MasterKey,
+		Name:  masterRoomCookieName,
+		Value: room.MasterKey,
 		Path:  "/",
 	})
 
-	w.Header().Add("HX-Push-Url", fmt.Sprintf("/room/%s", session.SessionId))
-	try(w, Templates.ExecuteTemplate(w, "master.html", session))
+	w.Header().Add("HX-Push-Url", fmt.Sprintf("/room/%s", room.RoomId))
+	try(w, Templates.ExecuteTemplate(w, "master.html", room))
 }
 
 func HandleLeave(w http.ResponseWriter, r *http.Request) {
-	sessCookie, err := r.Cookie(sessionCookieName)
+	roomCookie, err := r.Cookie(roomCookieName)
 	if err != nil {
-		fmt.Fprintf(w, "could not find session")
+		fmt.Fprintf(w, "could not find room")
 	}
 
-	SessionStorage.Delete(sessCookie.Value)
+	RoomStorage.Delete(roomCookie.Value)
 
 	w.Header().Add("HX-Push-Url", "/")
 	try(w, Templates.ExecuteTemplate(w, "home.html", nil))
@@ -61,10 +61,10 @@ func HandleAddQuestion(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sessionId, err := r.Cookie(sessionCookieName)
+	roomId, err := r.Cookie(roomCookieName)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(w, "there was no session cookie set")
+		fmt.Fprintf(w, "there was no room cookie set")
 		return
 	}
 
@@ -76,34 +76,34 @@ func HandleAddQuestion(w http.ResponseWriter, r *http.Request) {
 		Body: body,
 	}
 
-	sess, ok := SessionStorage.Load(sessionId.Value)
+	room, ok := RoomStorage.Load(roomId.Value)
 	if !ok {
 		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(w, "session %s was not found", sessionId.Value)
+		fmt.Fprintf(w, "room %s was not found", roomId.Value)
 		return
 	}
 
-	sess.Questions = append(sess.Questions, q)
+	room.Questions = append(room.Questions, q)
 
-	SessionStorage.Store(sess.SessionId, sess)
+	RoomStorage.Store(room.RoomId, room)
 }
 
 func HandleCount(w http.ResponseWriter, r *http.Request) {
-	sessionId, err := r.Cookie("session")
+	roomId, err := r.Cookie("room")
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(w, "there was no session cookie set")
+		fmt.Fprintf(w, "there was no room cookie set")
 		return
 	}
 
-	sess, ok := SessionStorage.Load(sessionId.Value)
+	room, ok := RoomStorage.Load(roomId.Value)
 	if !ok {
 		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(w, "session %s was not found", sessionId.Value)
+		fmt.Fprintf(w, "room %s was not found", roomId.Value)
 		return
 	}
 
-	try(w, Templates.ExecuteTemplate(w, "count.html", sess))
+	try(w, Templates.ExecuteTemplate(w, "count.html", room))
 }
 
 func HandleJoin(w http.ResponseWriter, r *http.Request) {
@@ -113,18 +113,18 @@ func HandleJoin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sessionId := r.FormValue("sessionid")
+	roomId := r.FormValue("roomid")
 
-	_, ok := SessionStorage.Load(sessionId)
+	_, ok := RoomStorage.Load(roomId)
 	if !ok {
 		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(w, "session %s was not found", sessionId)
+		fmt.Fprintf(w, "room %s was not found", roomId)
 		return
 	}
 
 	http.SetCookie(w, &http.Cookie{
-		Name:  "session",
-		Value: sessionId,
+		Name:  "room",
+		Value: roomId,
 	})
 
 	if err := Templates.ExecuteTemplate(w, "prompt.html", nil); err != nil {
@@ -142,7 +142,7 @@ func HandleView(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sess, ok := getSession(r, w)
+	room, ok := getRoom(r, w)
 	if !ok {
 		return
 	}
@@ -154,18 +154,19 @@ func HandleView(w http.ResponseWriter, r *http.Request) {
 	}
 	var data s
 
-	if len(sess.Questions) >= n {
+	if len(room.Questions) >= n {
 		action := r.URL.Query().Get("a")
 		switch action {
 		case "next":
-			n = min(len(sess.Questions)-1, n+1)
+			n = min(len(room.Questions)-1, n+1)
 		case "prev":
 			n = max(0, n-1)
 		}
 
 		data = s{
-			Question: sess.Questions[n],
+			Question: room.Questions[n],
 			Pos:      n,
+			End:      len(room.Questions),
 		}
 	}
 
@@ -179,22 +180,22 @@ func HandleView(w http.ResponseWriter, r *http.Request) {
 func HandleRoom(w http.ResponseWriter, r *http.Request) {
 	roomId := r.PathValue("roomId")
 
-	sess, ok := SessionStorage.Load(roomId)
+	room, ok := RoomStorage.Load(roomId)
 	if !ok {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
 
-	sessionCookie := http.Cookie{
-		Name:  sessionCookieName,
-		Value: sess.SessionId,
+	roomCookie := http.Cookie{
+		Name:  roomCookieName,
+		Value: room.RoomId,
 		Path:  "/",
 	}
-	http.SetCookie(w, &sessionCookie)
+	http.SetCookie(w, &roomCookie)
 
-	masterCookie, err := r.Cookie(masterSessionCookieName)
-	if err == nil && masterCookie.Value == sess.MasterKey {
-		try(w, executeWithBase(w, "master.html", sess))
+	masterCookie, err := r.Cookie(masterRoomCookieName)
+	if err == nil && masterCookie.Value == room.MasterKey {
+		try(w, executeWithBase(w, "master.html", room))
 		return
 	}
 
@@ -204,29 +205,29 @@ func HandleRoom(w http.ResponseWriter, r *http.Request) {
 func HandleCheckOpen(w http.ResponseWriter, r *http.Request) {
 	// We don't really care if the cookie is not found,
 	// the same action should be taken
-	sessionId, _ := r.Cookie(sessionCookieName)
-	_, ok := SessionStorage.Load(sessionId.Value)
+	roomId, _ := r.Cookie(roomCookieName)
+	_, ok := RoomStorage.Load(roomId.Value)
 
 	if !ok {
 		try(w, Templates.ExecuteTemplate(w, "room_closed.html", nil))
 	}
 }
 
-// Get the session from cookies
-func getSession(r *http.Request, w http.ResponseWriter) (Session, bool) {
-	sessionId, err := r.Cookie(sessionCookieName)
+// Get the room from cookies
+func getRoom(r *http.Request, w http.ResponseWriter) (Room, bool) {
+	roomId, err := r.Cookie(roomCookieName)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(w, "there was no session cookie set")
-		return Session{}, false
+		fmt.Fprintf(w, "there was no room cookie set")
+		return Room{}, false
 	}
 
-	sess, ok := SessionStorage.Load(sessionId.Value)
+	room, ok := RoomStorage.Load(roomId.Value)
 	if !ok {
 		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(w, "session %s was not found", sessionId.Value)
-		return Session{}, false
+		fmt.Fprintf(w, "room %s was not found", roomId.Value)
+		return Room{}, false
 	}
 
-	return sess, true
+	return room, true
 }

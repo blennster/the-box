@@ -22,12 +22,12 @@ func main() {
 	fmt.Println(tmpl.DefinedTemplates())
 	internal.Templates = tmpl
 
-	store := internal.NewInMemoryStore[string, internal.Session]()
-	testSession := internal.NewSession()
-	testSession.SessionId = "000000"
-	store.Store(testSession.SessionId, testSession)
+	store := internal.NewInMemoryStore[string, internal.Room]()
+	testRoom := internal.NewRoom()
+	testRoom.RoomId = "000000"
+	store.Store(testRoom.RoomId, testRoom)
 
-	internal.SessionStorage = &store
+	internal.RoomStorage = &store
 
 	http.Handle("/static/", http.FileServerFS(web.Static))
 	http.HandleFunc("/", internal.HandleHome)
