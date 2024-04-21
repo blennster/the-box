@@ -1,13 +1,16 @@
 <div hx-target="this">
   <h1 class="text-xl">{{ .Question.To }}</h1>
   <p class="text-l mb-2">{{ .Question.Body }}</p>
-  <p>Question {{ .Pos }} / {{ .End }}</p>
+  <p>
+    Question {{ inc .Pos }} /
+    <span hx-trigger="every 5s" hx-get="/count"></span>
+  </p>
 
   <div class="join my-2">
-    <button class="btn join-item" type="" hx-get="/view?n={{ .Prev }}">
+    <button class="btn join-item" type="" hx-get="/view?n={{ .Pos }}&a=prev">
       Previous
     </button>
-    <button class="btn join-item" type="" hx-get="/view?n={{ .Next }}">
+    <button class="btn join-item" type="" hx-get="/view?n={{ .Pos }}&a=next">
       Next
     </button>
   </div>

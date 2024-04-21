@@ -151,18 +151,21 @@ func HandleView(w http.ResponseWriter, r *http.Request) {
 		Question Question
 		End      int
 		Pos      int
-		Next     int
-		Prev     int
 	}
+	var data s
 
-	data := s{}
 	if len(sess.Questions) >= n {
+		action := r.URL.Query().Get("a")
+		switch action {
+		case "next":
+			n = min(len(sess.Questions)-1, n+1)
+		case "prev":
+			n = max(0, n-1)
+		}
+
 		data = s{
 			Question: sess.Questions[n],
-			Pos:      n + 1,
-			End:      len(sess.Questions),
-			Next:     min(len(sess.Questions), n+1),
-			Prev:     max(0, n-1),
+			Pos:      n,
 		}
 	}
 
@@ -198,18 +201,30 @@ func HandleRoom(w http.ResponseWriter, r *http.Request) {
 	try(w, executeWithBase(w, "prompt.html", nil))
 }
 
+func HandleCheckOpen(w http.ResponseWriter, r *http.Request) {
+	// We don't really care if the cookie is not found,
+	// the same action should be taken
+	sessionId, _ := r.Cookie(sessionCookieName)
+	_, ok := SessionStorage.Load(sessionId.Value)
+
+	if !ok {
+		try(w, Templates.ExecuteTemplate(w, "room_closed.html", nil))
+	}
+}
+
+// Get the session from cookies
 func getSession(r *http.Request, w http.ResponseWriter) (Session, bool) {
-	sessionId, err := r.Cookie("session")
+	sessionId, err := r.Cookie(sessionCookieName)
 	if err != nil {
-		fmt.Fprintf(w, "there was no session cookie set")
 		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprintf(w, "there was no session cookie set")
 		return Session{}, false
 	}
 
 	sess, ok := SessionStorage.Load(sessionId.Value)
 	if !ok {
+		w.WriteHeader(http.StatusBadRequest)
 		fmt.Fprintf(w, "session %s was not found", sessionId.Value)
-		// w.WriteHeader(http.StatusBadRequest)
 		return Session{}, false
 	}
 
