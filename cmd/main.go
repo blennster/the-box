@@ -23,9 +23,9 @@ func main() {
 	internal.Templates = tmpl
 
 	store := internal.NewInMemoryStore[string, internal.Room]()
-	testRoom := internal.NewRoom()
-	testRoom.RoomId = "000000"
-	store.Store(testRoom.RoomId, testRoom)
+	// testRoom := internal.NewRoom()
+	// testRoom.RoomId = "000000"
+	// store.Store(testRoom.RoomId, testRoom)
 
 	internal.RoomStorage = &store
 
@@ -40,7 +40,7 @@ func main() {
 	http.HandleFunc("/room/{roomId}", internal.HandleRoom)
 	http.HandleFunc("/view", internal.HandleView)
 
-	addr := ":8000"
+	addr := ":8080"
 	fmt.Printf("listening on %s\n", addr)
 	if err := http.ListenAndServe(addr, nil); err != nil {
 		fmt.Printf("could not start server: %s\n", err)
